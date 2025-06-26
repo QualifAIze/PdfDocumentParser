@@ -1,4 +1,5 @@
 fastapi~=0.112.2
 PyMuPDF
 pydantic~=2.10.3
+uvicorn
 python-multipart
