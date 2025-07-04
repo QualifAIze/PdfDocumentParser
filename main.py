@@ -19,8 +19,12 @@ async def parse_document_to_tree(file: UploadFile = File(...)) -> PDFResponse:
     preprocessor = PreprocessPDF(bytes_stream, file.filename)
     processed_pdf = preprocessor.process()
 
-    toc = processed_pdf['subsections'][0]
-    toc_with_content = processed_pdf['subsections'][1]
+    subsections = processed_pdf['subsections']
+    subsections_count = len(subsections)
 
-    response = PDFResponse(original_file_name=processed_pdf['title'], toc=toc, toc_with_content=toc_with_content)
+    response = PDFResponse(
+        document_name=processed_pdf['document_name'],
+        subsections_count=subsections_count,
+        subsections=subsections
+    )
     return response

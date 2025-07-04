@@ -15,24 +15,32 @@ class PreprocessPDF:
     class TreeNode:
         def __init__(self, *args):
             self.title = args[0]
-            self.children = []
+            self.subsections = []
+            self.level = - 1
+            self.position = 0
             if len(args) == 3:
                 self.content = args[1]
                 self.page = args[2]
 
         def add_child(self, node):
-            self.children.append(node)
+            node.level = self.level + 1
+            node.position = len(self.subsections)
+            self.subsections.append(node)
 
         def to_dict(self):
-            attributes_to_exist_in_json = {'title': self.title}
-            if len(self.__dict__) > 2:
+            attributes_to_exist_in_json = {
+                'title': self.title,
+                'level': self.level,
+                'position': self.position
+            }
+            if hasattr(self, 'page') and hasattr(self, 'content'):
                 attributes_to_exist_in_json['page'] = self.page
                 attributes_to_exist_in_json['content'] = self.content
 
-            children_count = len(self.children)
+            children_count = len(self.subsections)
             attributes_to_exist_in_json['subsections_count'] = children_count
             if children_count > 0:
-                attributes_to_exist_in_json['subsections'] = [child.to_dict() for child in self.children]
+                attributes_to_exist_in_json['subsections'] = [child.to_dict() for child in self.subsections]
 
             return attributes_to_exist_in_json
 
@@ -128,8 +136,7 @@ class PreprocessPDF:
         for entry in toc:
             level, title, page, content = entry
 
-            node = self.TreeNode(title, content, page) if tree_name == self.TOC_WITH_CONTENT_NAME else self.TreeNode(
-                title)
+            node = self.TreeNode(title, content, page)
 
             while len(stack) > level:
                 stack.pop()
@@ -140,14 +147,14 @@ class PreprocessPDF:
 
         return tree
 
-    def prepare_tree_for_export(self):
-        root = self.TreeNode(self.document_name)
-        toc_without_content = self.build_tree(self.toc, self.TOC_WITHOUT_CONTENT_NAME)
-        toc_with_content = self.build_tree(self.toc, self.TOC_WITH_CONTENT_NAME)
-        root.add_child(toc_without_content)
-        root.add_child(toc_with_content)
-        return root
-
     def process(self):
         self.separate_content_by_topics()
-        return self.prepare_tree_for_export().to_dict()
+        toc_with_content = self.build_tree(self.toc, self.TOC_WITH_CONTENT_NAME).subsections
+
+        # Convert TreeNode objects to dictionaries
+        subsections_dict = [node.to_dict() for node in toc_with_content]
+
+        return {
+            'document_name': self.document_name,
+            'subsections': subsections_dict
+        }
